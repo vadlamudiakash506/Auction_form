@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auction Entry</title>
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#f4f7fb,#101720);--panel:light-dark(#fff,#19232e);--text:light-dark(#17212b,#eef4f8);--muted:light-dark(#64748b,#a7b5c4);--line:light-dark(#dbe3ec,#334252);--accent:light-dark(#087f5b,#42d6a0);--accentText:#fff;--input:light-dark(#fff,#111a23)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,-apple-system,Segoe UI,sans-serif}.app{min-height:100vh;background:var(--bg);padding:20px 14px 36px}.wrap{max-width:850px;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);font-weight:700}.top h1{font-size:clamp(25px,5vw,34px);margin:4px 0}.date{font-size:13px;color:var(--muted);text-align:right}.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 8px 24px #00000008}.panel h2{font-size:18px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:7px}.field label{font-size:13px;color:var(--muted);font-weight:650}.field input{width:100%;min-width:0;background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:14px 12px;font:inherit;outline:none}.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}.full{grid-column:1/-1}.total{display:flex;justify-content:space-between;align-items:center;background:color-mix(in srgb,var(--accent) 11%,var(--panel));padding:13px 14px;border-radius:12px;margin-top:14px}.total strong{font-size:22px}.actions{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:9px;margin-top:15px}button{border:1px solid var(--line);border-radius:11px;padding:13px 10px;font:inherit;font-weight:750;cursor:pointer;background:var(--panel);color:var(--text)}button.primary{background:var(--accent);color:var(--accentText);border-color:var(--accent)}button:active{transform:scale(.99)}.hint{font-size:12px;line-height:1.5;color:var(--muted);margin:12px 0 0}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px}.stat span{display:block;font-size:12px;color:var(--muted)}.stat strong{font-size:20px;display:block;margin-top:4px}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}th,td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}td:last-child{text-align:right}.empty{color:var(--muted);text-align:center;padding:24px 10px}.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.row-actions button{font-size:13px;padding:9px 12px}.status{font-size:13px;color:var(--accent);min-height:18px;margin-top:9px}.danger{color:light-dark(#b42318,#ff8b82)}@media(max-width:520px){.app{padding:15px 10px}.panel{padding:14px}.grid{gap:11px}.actions{grid-template-columns:1fr 1fr}.actions .primary{grid-column:1/-1}.stat strong{font-size:17px}.date{font-size:11px}}
+
+@media print {
+  body * { visibility: hidden !important; }
+  #printReceiptArea, #printReceiptArea * { visibility: visible !important; }
+  #printReceiptArea { display:block !important; position:absolute !important; left:0 !important; top:0 !important; width:100% !important; padding:8mm !important; background:#fff !important; color:#000 !important; font:12pt Arial,sans-serif !important; box-shadow:none !important; border:0 !important; }
+  #printReceiptArea h2 { margin:0 0 8px; font-size:18pt; }
+  #printReceiptArea table { width:100%; border-collapse:collapse; white-space:normal; margin-top:10px; }
+  #printReceiptArea th,#printReceiptArea td { border:1px solid #777; padding:6px; color:#000; text-align:left; }
+  #printReceiptArea .receipt-total { margin-top:12px; padding-top:10px; border-top:2px solid #000; font-size:15pt; font-weight:bold; }
+}
+
+</style></head>
+<body><main class="app"><div class="wrap">
+<header class="top"><div><div class="eyebrow">Wholesale • Daily entry</div><h1>🍌 Auction Entry</h1></div><div class="date" id="todayLabel"></div></header>
+<section class="panel"><h2>Enter auction item</h2><form id="entryForm" autocomplete="off"><div class="grid">
+<div class="field"><label for="auctionDate">Date</label><input id="auctionDate" type="date" required></div>
+<div class="field"><label for="farmer">Farmer name</label><input id="farmer" list="farmerList" placeholder="Enter farmer name" required><datalist id="farmerList"></datalist></div>
+<div class="field"><label for="quantity">Quantity (cases / gellalu)</label><input id="quantity" type="number" min="0.01" step="any" inputmode="decimal" placeholder="e.g. 25" required></div>
+<div class="field"><label for="buyer">Buyer name</label><input id="buyer" list="buyerList" placeholder="Enter buyer name" required><datalist id="buyerList"></datalist></div>
+<div class="field full"><label for="price">Price per unit (₹)</label><input id="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Enter rate per case" required></div>
+</div><div class="total"><div><div class="eyebrow">Line total</div><div style="font-size:12px;color:var(--muted)">Quantity × price</div></div><strong id="totalDisplay">₹0.00</strong></div>
+<div class="actions"><button class="primary" type="submit">＋ Save entry</button><button type="button" id="clearBtn">Clear form</button><button type="button" id="exportBtn">Export to Excel</button></div><div class="status" id="status" role="status"></div><p class="hint">Fast entry: after saving, the form clears for the next auction item. The last farmer and buyer names stay available as suggestions.</p></form></section>
+<section class="stats"><div class="stat"><span>Entries today</span><strong id="entryCount">0</strong></div><div class="stat"><span>Total quantity today</span><strong id="quantitySum">0</strong></div><div class="stat"><span>Total sales today</span><strong id="salesSum">₹0</strong></div></section>
+
+<section class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <h2 style="margin:0">Buyer Report</h2>
+    <button type="button" id="toggleBuyerReport">Open Buyer Report</button>
+  </div>
+  <div id="buyerReportPanel" style="display:none;margin-top:16px">
+    <div class="grid">
+      <div class="field"><label for="reportBuyer">Buyer name</label>
+        <select id="reportBuyer" style="width:100%;background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:14px 12px;font:inherit"><option value="__ALL__">All buyers</option></select>
+      </div>
+      <div class="field"><label for="reportDate">Purchase date</label><input id="reportDate" type="date"></div>
+    </div>
+    <div class="stats" style="margin-top:14px">
+      <div class="stat"><span>Entries</span><strong id="reportCount">0</strong></div>
+      <div class="stat"><span>Total quantity</span><strong id="reportQuantity">0</strong></div>
+      <div class="stat"><span>Total purchase</span><strong id="reportTotal">₹0.00</strong></div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Buyer</th><th>Farmer</th><th>Quantity</th><th>Price ₹</th><th>Total ₹</th></tr></thead><tbody id="reportBody"></tbody></table><div id="reportEmpty" class="empty">No purchases match these filters.</div></div>
+    <div class="row-actions"><button type="button" id="printBuyerReceipt">Print Buyer Receipt</button></div>
+  </div>
+</section>
+
+
+<section class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <h2 style="margin:0">Farmer Report</h2>
+    <button type="button" id="toggleFarmersReport">Open Farmer Report</button>
+  </div>
+  <div id="farmersReportPanel" style="display:none;margin-top:16px">
+    <div class="grid">
+      <div class="field"><label for="reportFarmer">Farmer name</label>
+        <select id="reportFarmer" style="width:100%;background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:14px 12px;font:inherit"><option value="__ALL__">All farmers</option></select>
+      </div>
+      <div class="field"><label for="farmerReportDateFrom">From date</label><input id="farmerReportDateFrom" type="date"></div>
+      <div class="field"><label for="farmerReportDateTo">To date</label><input id="farmerReportDateTo" type="date"></div>
+    </div>
+    <div class="stats" style="margin-top:14px">
+      <div class="stat"><span>Gross total</span><strong id="farmerGross">₹0.00</strong></div>
+      <div class="stat"><span>Total quantity</span><strong id="farmerQty">0</strong></div>
+      <div class="stat"><span>12% commission</span><strong id="farmerCommission">₹0.00</strong></div>
+    </div>
+    <div class="grid">
+      <div class="field"><label for="transportCharges">Transport charges (₹)</label><input id="transportCharges" type="number" min="0" step="0.01" inputmode="decimal" value="0" placeholder="Enter transport charges"></div>
+      <div class="field"><label>Quantity × ₹3 deduction</label><input id="deduction3" readonly value="₹0.00"></div>
+      <div class="field"><label>Quantity × ₹4 deduction</label><input id="deduction4" readonly value="₹0.00"></div>
+      <div class="field"><label>Total deductions</label><input id="farmerDeductions" readonly value="₹0.00"></div>
+    </div>
+    <div class="total"><div><div class="eyebrow">Grand total payable</div><div style="font-size:12px;color:var(--muted)">Gross − quantity deductions − 12% commission − transport</div></div><strong id="farmerGrandTotal">₹0.00</strong></div>
+    <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Date</th><th>Farmer</th><th>Buyer</th><th>Quantity</th><th>Price ₹</th><th>Gross total ₹</th></tr></thead><tbody id="farmersReportBody"></tbody></table><div id="farmersReportEmpty" class="empty">No entries match these filters.</div></div>
+    <div class="row-actions"><button type="button" id="printFarmerReceipt">Print Farmer Receipt</button></div>
+    <p class="hint">Transport charges are entered for this report and included in the printed receipt. They are not stored as a separate permanent record.</p>
+  </div>
+</section>
+
+<section class="panel"><h2>Saved entries <span id="recordCount" style="color:var(--muted);font-size:13px;font-weight:500"></span></h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Farmer</th><th>Quantity</th><th>Buyer</th><th>Price ₹</th><th>Total ₹</th><th></th></tr></thead><tbody id="recordsBody"></tbody></table><div id="emptyState" class="empty">No entries yet. Save your first auction item above.</div></div><div class="row-actions"><button id="exportAllBtn">Export all records (.CSV)</button><button id="deleteTodayBtn">Delete today's entries</button><button id="clearAllBtn" class="danger">Clear all saved data</button></div><p class="hint">Entries are saved in this browser on this device. They remain when you close and reopen this form in the same browser, but do not sync to other devices. Export backups regularly and do not clear browser data.</p></section>
+</div>
+<section id="printReceiptArea" style="display:none">
+  <h2 id="receiptTitle">Auction Receipt</h2>
+  <p id="receiptDateLine"></p><p id="receiptNameLine"></p>
+  <table><thead id="receiptHead"><tr><th>Date</th><th>Farmer</th><th>Buyer</th><th>Quantity</th><th>Price ₹</th><th>Total ₹</th></tr></thead><tbody id="receiptRows"></tbody></table>
+  <table id="farmerReceiptDeductions" style="display:none;margin-top:12px"><tbody>
+    <tr><td>Gross total</td><td id="receiptGross"></td></tr>
+    <tr><td>Total quantity</td><td id="receiptQuantity"></td></tr>
+    <tr><td>Quantity × ₹3 deduction</td><td id="receiptD3"></td></tr>
+    <tr><td>Quantity × ₹4 deduction</td><td id="receiptD4"></td></tr>
+    <tr><td>12% commission</td><td id="receiptCommission"></td></tr>
+    <tr><td>Transport charges</td><td id="receiptTransport"></td></tr>
+  </tbody></table>
+  <div class="receipt-total" id="receiptGrand"></div>
+  <p style="margin-top:28px">Signature: ____________________</p>
+</section>
+
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let records=[], farmers=[], buyers=[], busy=false;
+// Standalone mode: keep records in this browser's local storage.
+// This works without a Python backend, but does NOT sync to other devices.
+async function api(path, options={}) {
+  const key='auctionRecordsLocal_v1';
+  const load=()=>{try{return JSON.parse(localStorage.getItem(key)||'[]')}catch{return []}};
+  const save=(rows)=>localStorage.setItem(key,JSON.stringify(rows));
+  const method=(options.method||'GET').toUpperCase();
+  if(path==='/api/records' && method==='GET') return {records:load()};
+  if(path==='/api/records' && method==='POST') {
+    const record=JSON.parse(options.body||'{}');
+    record.id=record.id||('local-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8));
+    const rows=load(); rows.push(record); save(rows); return {record};
+  }
+  if(path==='/api/records' && method==='DELETE') {save([]);return {ok:true};}
+  if(path.startsWith('/api/records/') && method==='DELETE') {
+    const id=decodeURIComponent(path.slice('/api/records/'.length));
+    save(load().filter(r=>String(r.id)!==id)); return {ok:true};
+  }
+  throw new Error('Unsupported local storage operation.');
+}
+function localDate(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function setStatus(msg, error=false){$('status').textContent=msg;$('status').classList.toggle('danger',error)}
+function setBusy(v){busy=v;document.querySelectorAll('#entryForm button,#recordsBody button,#deleteTodayBtn,#clearAllBtn').forEach(b=>b.disabled=v)}
+$('auctionDate').value=localDate();$('todayLabel').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+function updateTotal(){let q=Number($('quantity').value)||0,p=Number($('price').value)||0;$('totalDisplay').textContent=money(q*p)}
+$('quantity').addEventListener('input',updateTotal);$('price').addEventListener('input',updateTotal);
+function fillLists(){$('farmerList').innerHTML=farmers.map(x=>`<option value="${esc(x)}">`).join('');$('buyerList').innerHTML=buyers.map(x=>`<option value="${esc(x)}">`).join('')}
+function render(){
+ refreshReports();let today=$('auctionDate').value||localDate(),todays=records.filter(r=>r.date===today);
+ $('entryCount').textContent=todays.length;$('quantitySum').textContent=Number(todays.reduce((s,r)=>s+r.quantity,0).toFixed(2));$('salesSum').textContent=money(todays.reduce((s,r)=>s+r.total,0));$('recordCount').textContent=`(${records.length.toLocaleString('en-IN')})`;
+ let body=$('recordsBody');body.innerHTML=records.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${r.quantity}</td><td>${esc(r.buyer)}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td><td><button type="button" data-delete="${esc(r.id)}" aria-label="Delete entry" style="padding:5px 8px">×</button></td></tr>`).join('');
+ $('emptyState').style.display=records.length?'none':'block';
+ body.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',async()=>{const r=records.find(x=>x.id===b.dataset.delete);if(!r)return;if(!confirm('Delete this entry from the Excel workbook?'))return;try{setBusy(true);setStatus('Deleting from Excel…');await api('/api/records/'+encodeURIComponent(r.id),{method:'DELETE'});await reloadRecords();setStatus('Entry deleted from Excel workbook.')}catch(e){setStatus(e.message,true)}finally{setBusy(false)}}));
+}
+function selectedBuyerRows(){const date=$('reportDate').value||localDate(),buyer=$('reportBuyer').value||'__ALL__';return records.filter(r=>r.date===date&&(buyer==='__ALL__'||r.buyer.toLowerCase()===buyer.toLowerCase()))}
+function selectedFarmerRows(){let from=$('farmerReportDateFrom').value||localDate(),to=$('farmerReportDateTo').value||localDate();if(from>to)[from,to]=[to,from];const farmer=$('reportFarmer').value||'__ALL__';return records.filter(r=>r.date>=from&&r.date<=to&&(farmer==='__ALL__'||r.farmer.toLowerCase()===farmer.toLowerCase()))}
+function renderBuyerOptions(){const sel=$('reportBuyer'),old=sel.value||'__ALL__',names=[...new Set(records.map(r=>r.buyer).filter(Boolean))].sort((a,b)=>a.localeCompare(b));sel.innerHTML='<option value="__ALL__">All buyers</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
+function renderFarmerOptions(){const sel=$('reportFarmer'),old=sel.value||'__ALL__',names=[...new Set(records.map(r=>r.farmer).filter(Boolean))].sort((a,b)=>a.localeCompare(b));sel.innerHTML='<option value="__ALL__">All farmers</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
+function renderBuyerReport(){const rows=selectedBuyerRows();$('reportCount').textContent=rows.length;$('reportQuantity').textContent=Number(rows.reduce((s,r)=>s+Number(r.quantity||0),0).toFixed(2)).toLocaleString('en-IN');$('reportTotal').textContent=money(rows.reduce((s,r)=>s+Number(r.total||0),0));$('reportBody').innerHTML=rows.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.buyer)}</td><td>${esc(r.farmer)}</td><td>${r.quantity}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td></tr>`).join('');$('reportEmpty').style.display=rows.length?'none':'block'}
+function renderFarmersReport(){const rows=selectedFarmerRows(),qty=rows.reduce((s,r)=>s+Number(r.quantity||0),0),gross=rows.reduce((s,r)=>s+Number(r.total||0),0),commission=gross*.12,d3=qty*3,d4=qty*4,transport=Math.max(0,Number($('transportCharges').value)||0),deductions=d3+d4+commission+transport;$('farmerGross').textContent=money(gross);$('farmerQty').textContent=Number(qty.toFixed(2)).toLocaleString('en-IN');$('farmerCommission').textContent=money(commission);$('deduction3').value=money(d3);$('deduction4').value=money(d4);$('farmerDeductions').value=money(deductions);$('farmerGrandTotal').textContent=money(gross-deductions);$('farmersReportBody').innerHTML=rows.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${esc(r.buyer)}</td><td>${r.quantity}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td></tr>`).join('');$('farmersReportEmpty').style.display=rows.length?'none':'block'}
+function prepareReceipt(title,nameLabel,nameValue,date,rows){const farmerReceipt=title==='Farmer Payment Receipt';$('receiptTitle').textContent=title;$('receiptDateLine').textContent='Date: '+date;$('receiptNameLine').textContent=nameLabel+': '+nameValue;$('receiptHead').innerHTML=farmerReceipt?'<tr><th>Date</th><th>Farmer</th><th>Quantity</th><th>Price ₹</th><th>Total ₹</th></tr>':'<tr><th>Date</th><th>Farmer</th><th>Buyer</th><th>Quantity</th><th>Price ₹</th><th>Total ₹</th></tr>';$('receiptRows').innerHTML=rows.map(r=>farmerReceipt?`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${r.quantity}</td><td>${money(r.price)}</td><td>${money(r.total)}</td></tr>`:`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${esc(r.buyer)}</td><td>${r.quantity}</td><td>${money(r.price)}</td><td>${money(r.total)}</td></tr>`).join('')}
+function printBuyerReceipt(){const rows=selectedBuyerRows(),date=$('reportDate').value||localDate(),buyer=$('reportBuyer').value||'__ALL__';$('farmerReceiptDeductions').style.display='none';$('receiptGrand').textContent='Total purchase: '+money(rows.reduce((s,r)=>s+Number(r.total||0),0));prepareReceipt('Buyer Purchase Receipt','Buyer',buyer==='__ALL__'?'All buyers':buyer,date,rows);window.print()}
+function printFarmerReceipt(){const rows=selectedFarmerRows();let from=$('farmerReportDateFrom').value||localDate(),to=$('farmerReportDateTo').value||localDate();if(from>to)[from,to]=[to,from];const date=from===to?from:`${from} to ${to}`,farmer=$('reportFarmer').value||'__ALL__',qty=rows.reduce((s,r)=>s+Number(r.quantity||0),0),gross=rows.reduce((s,r)=>s+Number(r.total||0),0),d3=qty*3,d4=qty*4,commission=gross*.12,transport=Math.max(0,Number($('transportCharges').value)||0),grand=gross-d3-d4-commission-transport;$('farmerReceiptDeductions').style.display='table';$('receiptGross').textContent=money(gross);$('receiptQuantity').textContent=Number(qty.toFixed(2)).toLocaleString('en-IN');$('receiptD3').textContent='−'+money(d3);$('receiptD4').textContent='−'+money(d4);$('receiptCommission').textContent='−'+money(commission);$('receiptTransport').textContent='−'+money(transport);$('receiptGrand').textContent='Grand total payable: '+money(grand);prepareReceipt('Farmer Payment Receipt','Farmer',farmer==='__ALL__'?'All farmers':farmer,date,rows);window.print()}
+function refreshReports(){renderBuyerOptions();renderFarmerOptions();renderBuyerReport();renderFarmersReport()}
+async function reloadRecords(){const data=await api('/api/records');records=data.records||[];farmers=[...new Set(records.map(r=>r.farmer).filter(Boolean))].sort();buyers=[...new Set(records.map(r=>r.buyer).filter(Boolean))].sort();fillLists();render()}
+$('entryForm').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;let farmer=$('farmer').value.trim(),buyer=$('buyer').value.trim(),quantity=Number($('quantity').value),price=Number($('price').value),date=$('auctionDate').value;if(!farmer||!buyer||!date||!(quantity>0)||!(price>=0))return;let record={date,farmer,quantity,buyer,price,total:Math.round(quantity*price*100)/100};try{setBusy(true);setStatus('Saving to Excel workbook…');await api('/api/records',{method:'POST',body:JSON.stringify(record)});await reloadRecords();$('farmer').value=farmer;$('buyer').value='';$('quantity').value='';$('price').value='';updateTotal();$('buyer').focus();setStatus('Entry saved to Excel workbook.')}catch(err){setStatus(err.message,true)}finally{setBusy(false)}});
+$('clearBtn').addEventListener('click',()=>{$('entryForm').reset();$('auctionDate').value=localDate();updateTotal();setStatus('Form cleared.');$('farmer').focus()});$('auctionDate').addEventListener('change',render);
+function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}function exportCsv(rows){if(!rows.length){setStatus('No records to export yet.');return}let lines=[['Date','Farmer Name','Quantity','Buyer Name','Price','Total','ID'],...rows.map(r=>[r.date,r.farmer,r.quantity,r.buyer,r.price,r.total,r.id])];let csv='\ufeff'+lines.map(row=>row.map(csvCell).join(',')).join('\r\n');let blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='auction_entries_'+localDate()+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);setStatus('Export downloaded. Open the CSV file in Excel.')}
+$('exportBtn').addEventListener('click',()=>exportCsv(records.filter(r=>r.date===$('auctionDate').value)));$('exportAllBtn').addEventListener('click',()=>exportCsv(records));
+$('deleteTodayBtn').addEventListener('click',async()=>{let d=localDate(),rows=records.filter(r=>r.date===d);if(!rows.length){setStatus('No entries for today.');return}if(confirm(`Delete all entries dated ${d}? This cannot be undone.`)){try{setBusy(true);setStatus('Deleting today’s entries…');for(const r of rows)await api('/api/records/'+encodeURIComponent(r.id),{method:'DELETE'});await reloadRecords();setStatus("Today's entries deleted from Excel workbook.")}catch(e){setStatus(e.message,true)}finally{setBusy(false)}}});
+$('clearAllBtn').addEventListener('click',async()=>{if(!records.length)return;if(confirm('Permanently clear all saved auction entries from the Excel workbook? Export first if you need a backup.')){try{setBusy(true);setStatus('Deleting all entries…');await api('/api/records',{method:'DELETE'});await reloadRecords();setStatus('All saved entries cleared from Excel workbook.')}catch(e){setStatus(e.message,true)}finally{setBusy(false)}}});
+$('toggleBuyerReport').addEventListener('click',()=>{const p=$('buyerReportPanel'),open=p.style.display==='none';p.style.display=open?'block':'none';$('toggleBuyerReport').textContent=open?'Hide Buyer Report':'Open Buyer Report';if(open)renderBuyerReport()});
+$('toggleFarmersReport').addEventListener('click',()=>{const p=$('farmersReportPanel'),open=p.style.display==='none';p.style.display=open?'block':'none';$('toggleFarmersReport').textContent=open?'Hide Farmer Report':'Open Farmer Report';if(open)renderFarmersReport()});
+$('reportBuyer').addEventListener('change',renderBuyerReport);$('reportDate').addEventListener('change',renderBuyerReport);$('reportFarmer').addEventListener('change',renderFarmersReport);$('farmerReportDateFrom').addEventListener('change',renderFarmersReport);$('farmerReportDateTo').addEventListener('change',renderFarmersReport);$('transportCharges').addEventListener('input',renderFarmersReport);$('printBuyerReceipt').addEventListener('click',printBuyerReceipt);$('printFarmerReceipt').addEventListener('click',printFarmerReceipt);
+$('reportDate').value=localDate();$('farmerReportDateFrom').value=localDate();$('farmerReportDateTo').value=localDate();
+async function init(){try{setStatus('Loading saved records from this browser…');await reloadRecords();setStatus(`Ready. ${records.length.toLocaleString('en-IN')} records loaded from this device.`)}catch(e){setStatus('Could not load local records: '+e.message,true)}updateTotal()}
+init();
+</script></body></html>
+
