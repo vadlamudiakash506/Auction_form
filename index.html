@@ -27,7 +27,7 @@
 <div class="field"><label for="buyer">Buyer name</label><input id="buyer" list="buyerList" placeholder="Enter buyer name" required><datalist id="buyerList"></datalist></div>
 <div class="field full"><label for="price">Price per unit (₹)</label><input id="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Enter rate per case" required></div>
 </div><div class="total"><div><div class="eyebrow">Line total</div><div style="font-size:12px;color:var(--muted)">Quantity × price</div></div><strong id="totalDisplay">₹0.00</strong></div>
-<div class="actions"><button class="primary" type="submit" id="saveEntryBtn">＋ Save entry</button><button type="button" id="clearBtn">Clear form</button><button type="button" id="cancelEditBtn" style="display:none">Cancel edit</button><button type="button" id="exportBtn">Export to Excel</button></div><div class="status" id="status" role="status"></div><p class="hint">Fast entry: after saving, the form clears for the next auction item. The last farmer and buyer names stay available as suggestions.</p></form></section>
+<div class="actions"><button class="primary" type="submit">＋ Save entry</button><button type="button" id="clearBtn">Clear form</button><button type="button" id="exportBtn">Export to Excel</button></div><div class="status" id="status" role="status"></div><p class="hint">Fast entry: after saving, the form clears for the next auction item. The last farmer and buyer names stay available as suggestions.</p></form></section>
 <section class="stats"><div class="stat"><span>Entries today</span><strong id="entryCount">0</strong></div><div class="stat"><span>Total quantity today</span><strong id="quantitySum">0</strong></div><div class="stat"><span>Total sales today</span><strong id="salesSum">₹0</strong></div></section>
 
 <section class="panel">
@@ -104,9 +104,11 @@
 
 </main>
 <script>
-const $=id=>document.getElementById(id);
-let records=[], farmers=[], buyers=[], busy=false, editingId=null;
-const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzJnlfurIgJaF-Q0x5qK9kmNtHJK2du98yrHWWKb4ugAgTpvYdZr9N1fTf8NOsCiQLA/exec';
+const $ = id => document.getElementById(id);
+const GOOGLE_SHEETS_URL =
+  "https://script.google.com/macros/s/AKfycbzJnlfurIgJaF-Q0x5qK9kmNtHJK2du98yrHWWKb4ugAgTpvYdZr9N1fTf8NOsCiQLA/exec";
+  
+let records = [], farmers = [], buyers = [], busy = false;
 // Standalone mode: keep records in this browser's local storage.
 // This works without a Python backend, but does NOT sync to other devices.
 async function api(path, options={}) {
@@ -115,27 +117,34 @@ async function api(path, options={}) {
   const save=(rows)=>localStorage.setItem(key,JSON.stringify(rows));
   const method=(options.method||'GET').toUpperCase();
   if(path==='/api/records' && method==='GET') return {records:load()};
-  if(path==='/api/records' && method==='POST') {
-    const record=JSON.parse(options.body||'{}');
-    record.id=record.id||('local-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8));
-    const rows=load(); rows.push(record); save(rows);
-    // Keep the existing Google Sheets submission for NEW entries only.
-    // Editing an existing entry never reaches this fetch and never changes the Sheet.
-    if (GOOGLE_SHEETS_URL && GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
-      fetch(GOOGLE_SHEETS_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(record)})
-        .catch(error=>console.error('Google Sheets submission failed:',error));
-    }
-    return {record};
+  if (path === '/api/records' && method === 'POST') {
+  const record = JSON.parse(options.body || '{}');
+
+  record.id = record.id ||
+    ('local-' + Date.now().toString(36) + '-' +
+      Math.random().toString(36).slice(2, 8));
+
+  // Save locally as before
+  const rows = load();
+  rows.push(record);
+  save(rows);
+
+  // Also send the new entry to Google Sheets
+  if (GOOGLE_SHEETS_URL &&
+      GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
+    fetch(GOOGLE_SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(record)
+    }).catch(error => {
+      console.error('Google Sheets submission failed:', error);
+    });
   }
-  if(path.startsWith('/api/records/') && method==='PUT') {
-    const id=decodeURIComponent(path.slice('/api/records/'.length));
-    const updated=JSON.parse(options.body||'{}');
-    const rows=load();
-    const index=rows.findIndex(r=>String(r.id)===String(id));
-    if(index===-1) throw new Error('Record not found in this browser.');
-    rows[index]={...rows[index],...updated,id:rows[index].id};
-    save(rows);
-    return {record:rows[index]};
+
+  return { record };
   }
   if(path==='/api/records' && method==='DELETE') {save([]);return {ok:true};}
   if(path.startsWith('/api/records/') && method==='DELETE') {
@@ -156,9 +165,8 @@ function fillLists(){$('farmerList').innerHTML=farmers.map(x=>`<option value="${
 function render(){
  refreshReports();let today=$('auctionDate').value||localDate(),todays=records.filter(r=>r.date===today);
  $('entryCount').textContent=todays.length;$('quantitySum').textContent=Number(todays.reduce((s,r)=>s+r.quantity,0).toFixed(2));$('salesSum').textContent=money(todays.reduce((s,r)=>s+r.total,0));$('recordCount').textContent=`(${records.length.toLocaleString('en-IN')})`;
- let body=$('recordsBody');body.innerHTML=records.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${r.quantity}</td><td>${esc(r.buyer)}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td><td><button type="button" data-edit="${esc(r.id)}" style="padding:5px 8px">Edit</button> <button type="button" data-delete="${esc(r.id)}" aria-label="Delete entry" style="padding:5px 8px">×</button></td></tr>`).join('');
+ let body=$('recordsBody');body.innerHTML=records.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${r.quantity}</td><td>${esc(r.buyer)}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td><td><button type="button" data-delete="${esc(r.id)}" aria-label="Delete entry" style="padding:5px 8px">×</button></td></tr>`).join('');
  $('emptyState').style.display=records.length?'none':'block';
- body.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const r=records.find(x=>String(x.id)===b.dataset.edit);if(!r)return;editingId=r.id;$('auctionDate').value=r.date;$('farmer').value=r.farmer;$('quantity').value=r.quantity;$('buyer').value=r.buyer;$('price').value=r.price;$('saveEntryBtn').textContent='Update entry';$('cancelEditBtn').style.display='inline-block';updateTotal();$('entryForm').scrollIntoView({behavior:'smooth',block:'start'});setStatus('Editing this entry in this browser only. Google Sheets will not change.');}));
  body.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',async()=>{const r=records.find(x=>x.id===b.dataset.delete);if(!r)return;if(!confirm('Delete this entry from the Excel workbook?'))return;try{setBusy(true);setStatus('Deleting from Excel…');await api('/api/records/'+encodeURIComponent(r.id),{method:'DELETE'});await reloadRecords();setStatus('Entry deleted from Excel workbook.')}catch(e){setStatus(e.message,true)}finally{setBusy(false)}}));
 }
 function selectedBuyerRows(){const date=$('reportDate').value||localDate(),buyer=$('reportBuyer').value||'__ALL__';return records.filter(r=>r.date===date&&(buyer==='__ALL__'||r.buyer.toLowerCase()===buyer.toLowerCase()))}
@@ -166,4 +174,5 @@ function selectedFarmerRows(){let from=$('farmerReportDateFrom').value||localDat
 function renderBuyerOptions(){const sel=$('reportBuyer'),old=sel.value||'__ALL__',names=[...new Set(records.map(r=>r.buyer).filter(Boolean))].sort((a,b)=>a.localeCompare(b));sel.innerHTML='<option value="__ALL__">All buyers</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
 function renderFarmerOptions(){const sel=$('reportFarmer'),old=sel.value||'__ALL__',names=[...new Set(records.map(r=>r.farmer).filter(Boolean))].sort((a,b)=>a.localeCompare(b));sel.innerHTML='<option value="__ALL__">All farmers</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
 function renderBuyerReport(){const rows=selectedBuyerRows();$('reportCount').textContent=rows.length;$('reportQuantity').textContent=Number(rows.reduce((s,r)=>s+Number(r.quantity||0),0).toFixed(2)).toLocaleString('en-IN');$('reportTotal').textContent=money(rows.reduce((s,r)=>s+Number(r.total||0),0));$('reportBody').innerHTML=rows.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.buyer)}</td><td>${esc(r.farmer)}</td><td>${r.quantity}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td></tr>`).join('');$('reportEmpty').style.display=rows.length?'none':'block'}
-function renderFarmersReport(){const rows=selectedFarmerRows(),qty=rows.reduce((s,r)=>s+Number(
+function renderFarmersReport(){const rows=selectedFarmerRows(),qty=rows.reduce((s,r)=>s+Number(r.quantity||0),0),gross=rows.reduce((s,r)=>s+Number(r.total||0),0),commission=gross*.12,d3=qty*3,d4=qty*4,transport=Math.max(0,Number($('transportCharges').value)||0),deductions=d3+d4+commission+transport;$('farmerGross').textContent=money(gross);$('farmerQty').textContent=Number(qty.toFixed(2)).toLocaleString('en-IN');$('farmerCommission').textContent=money(commission);$('deduction3').value=money(d3);$('deduction4').value=money(d4);$('farmerDeductions').value=money(deductions);$('farmerGrandTotal').textContent=money(gross-deductions);$('farmersReportBody').innerHTML=rows.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${esc(r.buyer)}</td><td>${r.quantity}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td></tr>`).join('');$('farmersReportEmpty').style.display=rows.length?'none':'block'}
+function prepareReceipt(title,nameLabel,nameValue,date,rows){const farmerReceipt=title==='Farmer Payment Receipt';$('receiptTitle').textContent=title;$('receiptDateLine').textContent='Date: '+date;$('receiptNameLine').textContent=nameLabel+': '+nameValue;$('receiptHead').innerHTML=farmerReceipt?'<tr><th>Date</th><th>Farmer</th><th>Quantity</th>
