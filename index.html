@@ -104,8 +104,11 @@
 
 </main>
 <script>
-const $=id=>document.getElementById(id);
-let records=[], farmers=[], buyers=[], busy=false;
+const $ = id => document.getElementById(id);
+const GOOGLE_SHEETS_URL =
+  "https://script.google.com/macros/s/AKfycbzJnlfurIgJaF-Q0x5qK9kmNtHJK2du98yrHWWKb4ugAgTpvYdZr9N1fTf8NOsCiQLA/exec";
+  
+let records = [], farmers = [], buyers = [], busy = false;
 // Standalone mode: keep records in this browser's local storage.
 // This works without a Python backend, but does NOT sync to other devices.
 async function api(path, options={}) {
@@ -114,10 +117,34 @@ async function api(path, options={}) {
   const save=(rows)=>localStorage.setItem(key,JSON.stringify(rows));
   const method=(options.method||'GET').toUpperCase();
   if(path==='/api/records' && method==='GET') return {records:load()};
-  if(path==='/api/records' && method==='POST') {
-    const record=JSON.parse(options.body||'{}');
-    record.id=record.id||('local-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8));
-    const rows=load(); rows.push(record); save(rows); return {record};
+  if (path === '/api/records' && method === 'POST') {
+  const record = JSON.parse(options.body || '{}');
+
+  record.id = record.id ||
+    ('local-' + Date.now().toString(36) + '-' +
+      Math.random().toString(36).slice(2, 8));
+
+  // Save locally as before
+  const rows = load();
+  rows.push(record);
+  save(rows);
+
+  // Also send the new entry to Google Sheets
+  if (GOOGLE_SHEETS_URL &&
+      GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
+    fetch(GOOGLE_SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(record)
+    }).catch(error => {
+      console.error('Google Sheets submission failed:', error);
+    });
+  }
+
+  return { record };
   }
   if(path==='/api/records' && method==='DELETE') {save([]);return {ok:true};}
   if(path.startsWith('/api/records/') && method==='DELETE') {
