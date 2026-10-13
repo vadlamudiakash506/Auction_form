@@ -162,13 +162,101 @@ $('auctionDate').value=localDate();$('todayLabel').textContent=new Date().toLoca
 function updateTotal(){let q=Number($('quantity').value)||0,p=Number($('price').value)||0;$('totalDisplay').textContent=money(q*p)}
 $('quantity').addEventListener('input',updateTotal);$('price').addEventListener('input',updateTotal);
 function fillLists(){$('farmerList').innerHTML=farmers.map(x=>`<option value="${esc(x)}">`).join('');$('buyerList').innerHTML=buyers.map(x=>`<option value="${esc(x)}">`).join('')}
-function render(){
- refreshReports();let today=$('auctionDate').value||localDate(),todays=records.filter(r=>r.date===today);
- $('entryCount').textContent=todays.length;$('quantitySum').textContent=Number(todays.reduce((s,r)=>s+r.quantity,0).toFixed(2));$('salesSum').textContent=money(todays.reduce((s,r)=>s+r.total,0));$('recordCount').textContent=`(${records.length.toLocaleString('en-IN')})`;
- let body=$('recordsBody');body.innerHTML=records.slice().reverse().map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.farmer)}</td><td>${r.quantity}</td><td>${esc(r.buyer)}</td><td>${money(r.price)}</td><td><b>${money(r.total)}</b></td><td><button type="button" data-delete="${esc(r.id)}" aria-label="Delete entry" style="padding:5px 8px">×</button></td></tr>`).join('');
- $('emptyState').style.display=records.length?'none':'block';
- body.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',async()=>{const r=records.find(x=>x.id===b.dataset.delete);if(!r)return;if(!confirm('Delete this entry from the Excel workbook?'))return;try{setBusy(true);setStatus('Deleting from Excel…');await api('/api/records/'+encodeURIComponent(r.id),{method:'DELETE'});await reloadRecords();setStatus('Entry deleted from Excel workbook.')}catch(e){setStatus(e.message,true)}finally{setBusy(false)}}));
-}
+
+function render() {
+  refreshReports();
+
+  const today = $('auctionDate').value || localDate();
+  const todays = records.filter(r => r.date === today);
+
+  $('entryCount').textContent = todays.length;
+  $('quantitySum').textContent = Number(
+    todays.reduce((s, r) => s + Number(r.quantity || 0), 0).toFixed(2)
+  );
+  $('salesSum').textContent = money(
+    todays.reduce((s, r) => s + Number(r.total || 0), 0)
+  );
+  $('recordCount').textContent =
+    `(${records.length.toLocaleString('en-IN')})`;
+
+  const body = $('recordsBody');
+
+  body.innerHTML = records.slice().reverse().map(r => `
+    <tr>
+      <td>${esc(r.date)}</td>
+      <td>${esc(r.farmer)}</td>
+      <td>${Number(r.quantity || 0)}</td>
+      <td>${esc(r.buyer)}</td>
+      <td>${money(r.price)}</td>
+      <td><b>${money(r.total)}</b></td>
+      <td>
+        <button type="button"
+          data-edit="${esc(r.id)}"
+          style="padding:5px 8px">Edit</button>
+        <button type="button"
+          data-delete="${esc(r.id)}"
+          aria-label="Delete entry"
+          style="padding:5px 8px">×</button>
+      </td>
+    </tr>
+  `).join('');
+
+  $('emptyState').style.display = records.length ? 'none' : 'block';
+
+  // Edit an existing entry
+  body.querySelectorAll('[data-edit]').forEach(button => {
+    button.addEventListener('click', () => {
+      const record = records.find(
+        r => String(r.id) === button.dataset.edit
+      );
+      if (!record) return;
+
+      editingId = record.id;
+      $('auctionDate').value = record.date;
+      $('farmer').value = record.farmer;
+      $('quantity').value = record.quantity;
+      $('buyer').value = record.buyer;
+      $('price').value = record.price;
+
+      $('saveEntryBtn').textContent = 'Update entry';
+      $('cancelEditBtn').style.display = 'inline-block';
+
+      updateTotal();
+      $('entryForm').scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+      setStatus('Editing entry. Change the details and press Update entry.');
+    });
+  });
+
+  // Delete an entry
+  body.querySelectorAll('[data-delete]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const record = records.find(
+        r => String(r.id) === button.dataset.delete
+      );
+      if (!record) return;
+
+      if (!confirm('Delete this entry from this device?')) return;
+
+      try {
+        setBusy(true);
+        setStatus('Deleting entry…');
+        await api('/api/records/' + encodeURIComponent(record.id), {
+          method: 'DELETE'
+        });
+        await reloadRecords();
+        setStatus('Entry deleted from this device.');
+      } catch (error) {
+        setStatus(error.message || 'Could not delete entry.', true);
+      } finally {
+        setBusy(false);
+      }
+    });
+  });
+    }
+  
 function selectedBuyerRows(){const date=$('reportDate').value||localDate(),buyer=$('reportBuyer').value||'__ALL__';return records.filter(r=>r.date===date&&(buyer==='__ALL__'||r.buyer.toLowerCase()===buyer.toLowerCase()))}
 function selectedFarmerRows(){let from=$('farmerReportDateFrom').value||localDate(),to=$('farmerReportDateTo').value||localDate();if(from>to)[from,to]=[to,from];const farmer=$('reportFarmer').value||'__ALL__';return records.filter(r=>r.date>=from&&r.date<=to&&(farmer==='__ALL__'||r.farmer.toLowerCase()===farmer.toLowerCase()))}
 function renderBuyerOptions(){const sel=$('reportBuyer'),old=sel.value||'__ALL__',names=[...new Set(records.map(r=>r.buyer).filter(Boolean))].sort((a,b)=>a.localeCompare(b));sel.innerHTML='<option value="__ALL__">All buyers</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
