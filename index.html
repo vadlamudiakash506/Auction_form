@@ -180,7 +180,49 @@ function printBuyerReceipt(){const rows=selectedBuyerRows(),date=$('reportDate')
 function printFarmerReceipt(){const rows=selectedFarmerRows();let from=$('farmerReportDateFrom').value||localDate(),to=$('farmerReportDateTo').value||localDate();if(from>to)[from,to]=[to,from];const date=from===to?from:`${from} to ${to}`,farmer=$('reportFarmer').value||'__ALL__',qty=rows.reduce((s,r)=>s+Number(r.quantity||0),0),gross=rows.reduce((s,r)=>s+Number(r.total||0),0),d3=qty*3,d4=qty*4,commission=gross*.12,transport=Math.max(0,Number($('transportCharges').value)||0),grand=gross-d3-d4-commission-transport;$('farmerReceiptDeductions').style.display='table';$('receiptGross').textContent=money(gross);$('receiptQuantity').textContent=Number(qty.toFixed(2)).toLocaleString('en-IN');$('receiptD3').textContent='−'+money(d3);$('receiptD4').textContent='−'+money(d4);$('receiptCommission').textContent='−'+money(commission);$('receiptTransport').textContent='−'+money(transport);$('receiptGrand').textContent='Grand total payable: '+money(grand);prepareReceipt('Farmer Payment Receipt','Farmer',farmer==='__ALL__'?'All farmers':farmer,date,rows);window.print()}
 function refreshReports(){renderBuyerOptions();renderFarmerOptions();renderBuyerReport();renderFarmersReport()}
 async function reloadRecords(){const data=await api('/api/records');records=data.records||[];farmers=[...new Set(records.map(r=>r.farmer).filter(Boolean))].sort();buyers=[...new Set(records.map(r=>r.buyer).filter(Boolean))].sort();fillLists();render()}
-$('entryForm').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;let farmer=$('farmer').value.trim(),buyer=$('buyer').value.trim(),quantity=Number($('quantity').value),price=Number($('price').value),date=$('auctionDate').value;if(!farmer||!buyer||!date||!(quantity>0)||!(price>=0))return;let record={date,farmer,quantity,buyer,price,total:Math.round(quantity*price*100)/100};try{setBusy(true);setStatus('Saving to Excel workbook…');await api('/api/records',{method:'POST',body:JSON.stringify(record)});await reloadRecords();$('farmer').value=farmer;$('buyer').value='';$('quantity').value='';$('price').value='';updateTotal();$('buyer').focus();setStatus('Entry saved to Excel workbook.')}catch(err){setStatus(err.message,true)}finally{setBusy(false)}});
+$('entryForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (busy) return;
+
+  const farmer = $('farmer').value.trim();
+  const buyer = $('buyer').value.trim();
+  const quantity = Number($('quantity').value);
+  const price = Number($('price').value);
+  const date = $('auctionDate').value;
+
+  // Do not silently ignore invalid entries: tell the user what to correct.
+  if (!date || !farmer || !buyer || !Number.isFinite(quantity) || quantity <= 0 ||
+      !Number.isFinite(price) || price < 0) {
+    setStatus('Please enter a date, farmer, buyer, quantity greater than 0, and a valid price.', true);
+    $('entryForm').reportValidity();
+    return;
+  }
+
+  const record = {
+    id: 'local-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    date, farmer, quantity, buyer, price,
+    total: Math.round(quantity * price * 100) / 100
+  };
+
+  try {
+    setBusy(true);
+    setStatus('Saving entry on this device…');
+    await api('/api/records', { method: 'POST', body: JSON.stringify(record) });
+    await reloadRecords();
+    $('farmer').value = farmer;
+    $('buyer').value = '';
+    $('quantity').value = '';
+    $('price').value = '';
+    updateTotal();
+    $('buyer').focus();
+    setStatus('Entry saved on this device.');
+  } catch (err) {
+    console.error('Auction entry save failed:', err);
+    setStatus('Could not save entry: ' + (err && err.message ? err.message : String(err)), true);
+  } finally {
+    setBusy(false);
+  }
+});
 $('clearBtn').addEventListener('click',()=>{$('entryForm').reset();$('auctionDate').value=localDate();updateTotal();setStatus('Form cleared.');$('farmer').focus()});$('auctionDate').addEventListener('change',render);
 function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}function exportCsv(rows){if(!rows.length){setStatus('No records to export yet.');return}let lines=[['Date','Farmer Name','Quantity','Buyer Name','Price','Total','ID'],...rows.map(r=>[r.date,r.farmer,r.quantity,r.buyer,r.price,r.total,r.id])];let csv='\ufeff'+lines.map(row=>row.map(csvCell).join(',')).join('\r\n');let blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='auction_entries_'+localDate()+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);setStatus('Export downloaded. Open the CSV file in Excel.')}
 $('exportBtn').addEventListener('click',()=>exportCsv(records.filter(r=>r.date===$('auctionDate').value)));$('exportAllBtn').addEventListener('click',()=>exportCsv(records));
